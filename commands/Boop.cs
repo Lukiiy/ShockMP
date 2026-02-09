@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using TShockAPI;
 
-namespace ShockMP
+namespace ShockMP.commands
 {
     public class Boop
     {

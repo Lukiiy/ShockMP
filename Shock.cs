@@ -1,10 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
-using On.Terraria.GameContent;
 using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
-using TShockAPI.Hooks;
+using ShockMP.commands;
 
 namespace ShockMP
 {
@@ -12,7 +11,7 @@ namespace ShockMP
     public class ShockMP(Main game) : TerrariaPlugin(game)
     {
         public override string Name => "ShockMP";
-        public override Version Version => new Version(1, 0);
+        public override Version Version => new(1, 0);
         public override string Author => "Lukiiy";
         public override string Description => "Shock MP";
 
@@ -24,10 +23,12 @@ namespace ShockMP
             GetDataHandlers.ReadNetModule.Register(NetModuleListener);
             ServerApi.Hooks.NetGetData.Register(this, PacketListener);
             On.Terraria.Player.Teleport += OnPlayerTeleport;
+            ServerApi.Hooks.ServerLeave.Register(this, OnQuit);
 
             Commands.ChatCommands.Add(new Command(Boop.Execute, "boop"));
             Commands.ChatCommands.Add(new Command(Back.Execute, "back"));
             Commands.ChatCommands.Add(new Command(Bed.Execute, "bed"));
+            Commands.ChatCommands.Add(new Command(ShockCmd.Execute, "shockmp"));
 
             sleepingCache = new bool[Main.maxPlayers];
 
@@ -44,6 +45,7 @@ namespace ShockMP
                 GetDataHandlers.ReadNetModule.UnRegister(NetModuleListener);
                 ServerApi.Hooks.NetGetData.Deregister(this, PacketListener);
                 On.Terraria.Player.Teleport -= OnPlayerTeleport;
+                ServerApi.Hooks.ServerLeave.Deregister(this, OnQuit);
             }
 
             base.Dispose(disposing);
@@ -85,12 +87,16 @@ namespace ShockMP
             args.Handled = true; // skip pinging to players
         }
 
+        private void OnQuit(LeaveEventArgs args)
+        {
+            sleepingCache[args.Who] = false;
+        }
+
         private static void OnPlayerTeleport(On.Terraria.Player.orig_Teleport orig, Player self, Vector2 newPos, int style, int extraInfo)
         {
             orig(self, newPos, style, extraInfo);
 
             if (Config.get("infiniteWormholes", false) && style == 3) TShock.Players[self.whoAmI].GiveItem(ItemID.WormholePotion, 1);
         }
-
     }
 }
