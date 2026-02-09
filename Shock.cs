@@ -4,6 +4,7 @@ using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
+using TShockAPI.Hooks;
 
 namespace ShockMP
 {
@@ -15,14 +16,15 @@ namespace ShockMP
         public override string Author => "Lukiiy";
         public override string Description => "Shock MP";
 
-        public ConfigFile Config { get; private set; } = new("shockmp");
+        public static ConfigFile Config { get; private set; } = new("shockmp");
         private bool[] sleepingCache = [];
 
         public override void Initialize()
         {
             SetupConfig();
-            GetDataHandlers.ReadNetModule.Register(Teleport);
+            GetDataHandlers.ReadNetModule.Register(NetModuleListener);
             ServerApi.Hooks.NetGetData.Register(this, PacketListener);
+            On.Terraria.Player.Teleport += OnPlayerTeleport;
 
             Commands.ChatCommands.Add(new Command(Boop.Execute, "boop"));
             Commands.ChatCommands.Add(new Command(Back.Execute, "back"));
@@ -35,8 +37,9 @@ namespace ShockMP
         {
             if (disposing)
             {
-                GetDataHandlers.ReadNetModule.UnRegister(Teleport);
+                GetDataHandlers.ReadNetModule.UnRegister(NetModuleListener);
                 ServerApi.Hooks.NetGetData.Deregister(this, PacketListener);
+                On.Terraria.Player.Teleport -= OnPlayerTeleport;
             }
 
             base.Dispose(disposing);
@@ -46,6 +49,7 @@ namespace ShockMP
         {
             Config.setIfAbsent("cheatyBack", false);
             Config.setIfAbsent("bedMsg", "{0} is sleeping in a bed. To fast forward time, all players need to sleep.");
+            Config.setIfAbsent("infiniteWormholes", false);
         }
 
         private void PacketListener(GetDataEventArgs args)
@@ -70,7 +74,7 @@ namespace ShockMP
             }
         }
 
-        private void Teleport(object? obj, GetDataHandlers.ReadNetModuleEventArgs args)
+        private void NetModuleListener(object? obj, GetDataHandlers.ReadNetModuleEventArgs args)
         {
             if (!args.Player.HasPermission("shockmp.mapteleport") || args.ModuleType != GetDataHandlers.NetModuleType.Ping) return;
 
@@ -81,7 +85,15 @@ namespace ShockMP
                 args.Player.SendSuccessMessage($"Teleported to {(int) pos.X} {(int) pos.Y}");
             }
 
-            args.Handled = true;
+            args.Handled = true; // skip pinging to players
         }
+        
+        private static void OnPlayerTeleport(On.Terraria.Player.orig_Teleport orig, Player self, Vector2 newPos, int style, int extraInfo)
+        {
+            orig(self, newPos, style, extraInfo);
+
+            if (Config.get("infiniteWormholes", false) && style == 3) TShock.Players[self.whoAmI].GiveItem(ItemID.WormholePotion, 1);
+        }
+
     }
 }
