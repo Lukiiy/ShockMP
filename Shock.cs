@@ -21,7 +21,6 @@ namespace ShockMP
 
         public override void Initialize()
         {
-            SetupConfig();
             GetDataHandlers.ReadNetModule.Register(NetModuleListener);
             ServerApi.Hooks.NetGetData.Register(this, PacketListener);
             On.Terraria.Player.Teleport += OnPlayerTeleport;
@@ -31,6 +30,11 @@ namespace ShockMP
             Commands.ChatCommands.Add(new Command(Bed.Execute, "bed"));
 
             sleepingCache = new bool[Main.maxPlayers];
+
+            // Config setup
+            Config.setIfAbsent("cheatyBack", false);
+            Config.setIfAbsent("bedMsg", "{0} is sleeping in a bed. To fast forward time, all players need to sleep.");
+            Config.setIfAbsent("infiniteWormholes", false);
         }
 
         protected override void Dispose(bool disposing)
@@ -43,13 +47,6 @@ namespace ShockMP
             }
 
             base.Dispose(disposing);
-        }
-
-        private void SetupConfig()
-        {
-            Config.setIfAbsent("cheatyBack", false);
-            Config.setIfAbsent("bedMsg", "{0} is sleeping in a bed. To fast forward time, all players need to sleep.");
-            Config.setIfAbsent("infiniteWormholes", false);
         }
 
         private void PacketListener(GetDataEventArgs args)
@@ -87,7 +84,7 @@ namespace ShockMP
 
             args.Handled = true; // skip pinging to players
         }
-        
+
         private static void OnPlayerTeleport(On.Terraria.Player.orig_Teleport orig, Player self, Vector2 newPos, int style, int extraInfo)
         {
             orig(self, newPos, style, extraInfo);
