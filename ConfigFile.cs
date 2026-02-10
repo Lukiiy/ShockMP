@@ -19,21 +19,13 @@ namespace ShockMP
 
         public void load()
         {
-            if (File.Exists(path)) data = JsonNode.Parse(File.ReadAllText(path))!.AsObject(); else data = new JsonObject();
+            if (File.Exists(path)) data = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            else data = new JsonObject();
         }
 
-        public void save()
-        {
-            File.WriteAllText(path, data.ToJsonString(new JsonSerializerOptions
-            {
-                WriteIndented = true
-            }));
-        }
+        public void save() => File.WriteAllText(path, data.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
-        public bool has(string key)
-        {
-            return data.ContainsKey(key);
-        }
+        public bool has(string key) => data.ContainsKey(key);
 
         public void set(string key, string value)
         {

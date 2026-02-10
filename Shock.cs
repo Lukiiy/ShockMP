@@ -4,6 +4,7 @@ using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
 using ShockMP.commands;
+using TShockAPI.Hooks;
 
 namespace ShockMP
 {
@@ -13,7 +14,7 @@ namespace ShockMP
         public override string Name => "ShockMP";
         public override Version Version => new(1, 0);
         public override string Author => "Lukiiy";
-        public override string Description => "Shock MP";
+        public override string Description => "little tshock plugin :)";
 
         public static ConfigFile Config { get; private set; } = new("shockmp");
         private bool[] sleepingCache = [];
@@ -24,6 +25,7 @@ namespace ShockMP
             ServerApi.Hooks.NetGetData.Register(this, PacketListener);
             On.Terraria.Player.Teleport += OnPlayerTeleport;
             ServerApi.Hooks.ServerLeave.Register(this, OnQuit);
+            GeneralHooks.ReloadEvent += OnReload;
 
             Commands.ChatCommands.Add(new Command(Boop.Execute, "boop"));
             Commands.ChatCommands.Add(new Command(Back.Execute, "back"));
@@ -46,6 +48,7 @@ namespace ShockMP
                 ServerApi.Hooks.NetGetData.Deregister(this, PacketListener);
                 On.Terraria.Player.Teleport -= OnPlayerTeleport;
                 ServerApi.Hooks.ServerLeave.Deregister(this, OnQuit);
+                GeneralHooks.ReloadEvent -= OnReload;
             }
 
             base.Dispose(disposing);
@@ -87,10 +90,7 @@ namespace ShockMP
             args.Handled = true; // skip pinging to players
         }
 
-        private void OnQuit(LeaveEventArgs args)
-        {
-            sleepingCache[args.Who] = false;
-        }
+        private void OnQuit(LeaveEventArgs args) => sleepingCache[args.Who] = false;
 
         private static void OnPlayerTeleport(On.Terraria.Player.orig_Teleport orig, Player self, Vector2 newPos, int style, int extraInfo)
         {
@@ -98,5 +98,7 @@ namespace ShockMP
 
             if (Config.get("infiniteWormholes", false) && style == 3) TShock.Players[self.whoAmI].GiveItem(ItemID.WormholePotion, 1);
         }
+
+        private static void OnReload(ReloadEventArgs args) => Config.load();
     }
 }
