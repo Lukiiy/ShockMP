@@ -5,6 +5,7 @@ using TerrariaApi.Server;
 using TShockAPI;
 using ShockMP.commands;
 using TShockAPI.Hooks;
+using ShockMP.listeners;
 
 namespace ShockMP
 {
@@ -36,7 +37,8 @@ namespace ShockMP
 
             // Config setup
             Config.setIfAbsent("cheatyBack", false);
-            Config.setIfAbsent("bedMsg", "{0} is sleeping in a bed. To fast forward time, all players need to sleep.");
+            Config.setIfAbsent("bedMsg", "{0} is sleeping in a bed. {1} more players must sleep to fast forward time.");
+            Config.setIfAbsent("bedMsgFull", "{0} is sleeping in a bed. Fast Forwarding time...");
             Config.setIfAbsent("infiniteWormholes", false);
         }
 
@@ -59,19 +61,18 @@ namespace ShockMP
             if (args.MsgID == PacketTypes.PlayerUpdate && TShock.Utils.GetActivePlayerCount() > 1)
             {
                 int playerId = args.Msg.whoAmI;
+                if (playerId < 0 || playerId >= Main.maxPlayers) return;
+
                 Player player = Main.player[playerId];
+                if (player == null) return;
+
                 bool sleeping = player.sleeping.isSleeping;
 
                 if (sleeping && !sleepingCache[playerId])
                 {
                     sleepingCache[playerId] = true;
-
-                    string msg = string.Format(Config.get("bedMsg", ""), player.name);
-                    if (string.IsNullOrEmpty(msg)) return;
-
-                    TShock.Utils.Broadcast(msg, Color.White);
+                    BedSleepHandler.SleepStart(playerId, player);
                 }
-
                 else if (!sleeping && sleepingCache[playerId]) sleepingCache[playerId] = false;
             }
         }
